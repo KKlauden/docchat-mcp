@@ -1,0 +1,24 @@
+name: get-users
+feed_name: Get Users
+description: Returns a list of user profiles including name, email, address, phone, website, and company information.
+endpoint: GET /users
+
+triggers:
+  keywords:
+    - user list, get users, all users, user profiles
+    - 用户列表, 获取用户, 用户信息
+    - user by id, specific user
+  scenarios:
+    - Get a list of all users
+    - Look up a specific user by ID
+    - Find user contact information
+
+fields:
+  - id
+  - name
+  - username
+  - email
+  - phone
+  - website
+  - address
+  - company

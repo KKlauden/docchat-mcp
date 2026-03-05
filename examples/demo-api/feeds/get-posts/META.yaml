@@ -1,0 +1,20 @@
+name: get-posts
+feed_name: Get Posts
+description: Returns blog posts with title, body, and the userId of the author.
+endpoint: GET /posts
+
+triggers:
+  keywords:
+    - post list, get posts, blog posts, all posts
+    - 文章列表, 获取文章, 博客文章
+    - posts by user, user posts
+  scenarios:
+    - Get a list of all blog posts
+    - Get posts by a specific user
+    - Look up a specific post by ID
+
+fields:
+  - id
+  - title
+  - body
+  - userId

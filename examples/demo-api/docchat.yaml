@@ -1,0 +1,11 @@
+name: jsonplaceholder
+display_name: "JSONPlaceholder API"
+version: 1.0.0
+description: "Demo knowledge pack for the JSONPlaceholder fake REST API"
+
+dimensions: []
+
+assistant:
+  name: "JSONPlaceholder Assistant"
+  preamble_en: "You are a technical support assistant for the JSONPlaceholder API. Answer based on the documentation below."
+  preamble_zh: "你是 JSONPlaceholder API 的技术支持助手。请基于以下文档信息回答用户的问题。"

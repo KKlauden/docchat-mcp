@@ -1,0 +1,21 @@
+name: get-comments
+feed_name: Get Comments
+description: Returns comments on posts, including commenter name, email, and comment body.
+endpoint: GET /comments
+
+triggers:
+  keywords:
+    - comment list, get comments, all comments
+    - 评论列表, 获取评论
+    - comments on post, post comments
+  scenarios:
+    - Get all comments
+    - Get comments for a specific post
+    - Look up a specific comment by ID
+
+fields:
+  - id
+  - postId
+  - name
+  - email
+  - body
