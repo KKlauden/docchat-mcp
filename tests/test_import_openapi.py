@@ -540,3 +540,249 @@ def test_resource_grouping_no_tags(spec_file):
     skeletons = importer.group_by_resource()
     # Should produce at least 2 distinct groups (users-related + posts)
     assert len(skeletons) >= 2
+
+
+# ---------------------------------------------------------------------------
+# Shared spec dicts for generate() tests
+# ---------------------------------------------------------------------------
+
+MINIMAL_SPEC_3 = _minimal_spec(
+    paths={
+        "/pets": {
+            "get": {
+                "operationId": "listPets",
+                "summary": "List pets",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {"type": "integer"},
+                                        "name": {"type": "string"},
+                                    },
+                                }
+                            }
+                        }
+                    }
+                },
+            },
+            "post": {
+                "operationId": "createPet",
+                "tags": ["pets"],
+                "summary": "Create pet",
+                "responses": {"201": {"description": "created"}},
+            },
+        },
+        "/pets/{id}": {
+            "get": {
+                "operationId": "getPet",
+                "tags": ["pets"],
+                "summary": "Get pet",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "integer"},
+                        "description": "Pet identifier",
+                    }
+                ],
+                "responses": {"200": {"description": "ok"}},
+            }
+        },
+    }
+)
+
+EXAMPLE_IN_SPEC = _minimal_spec(
+    paths={
+        "/status": {
+            "get": {
+                "operationId": "getStatus",
+                "summary": "Get status",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {"type": "object"},
+                                "example": {"status": "ok", "version": "1.0"},
+                            }
+                        }
+                    }
+                },
+            }
+        }
+    }
+)
+
+
+# ---------------------------------------------------------------------------
+# 17. generate() creates feed dirs and files
+# ---------------------------------------------------------------------------
+
+
+def test_generate_creates_feed_dirs(spec_file, tmp_path):
+    """generate() 为每个 feed 创建目录、META.yaml 和 GUIDE.md。"""
+    p = spec_file(MINIMAL_SPEC_3)
+    importer = OpenAPIImporter(p).parse()
+    feeds = importer.group_by_endpoint()
+    out_dir = tmp_path / "output"
+
+    result = importer.generate(feeds, out_dir, on_conflict=lambda fc: "skip")
+
+    assert len(result.created) == len(feeds)
+    assert result.skipped == []
+    assert result.overwritten == []
+
+    for feed in feeds:
+        feed_dir = out_dir / feed.feed_code
+        assert feed_dir.is_dir(), f"目录不存在: {feed_dir}"
+        assert (feed_dir / "META.yaml").exists()
+        assert (feed_dir / "GUIDE.md").exists()
+
+
+# ---------------------------------------------------------------------------
+# 18. META.yaml 内容正确
+# ---------------------------------------------------------------------------
+
+
+def test_generate_meta_content(spec_file, tmp_path):
+    """META.yaml 中 name、feed_name、endpoint、triggers.keywords、fields 均正确。"""
+    import yaml
+
+    p = spec_file(MINIMAL_SPEC_3)
+    importer = OpenAPIImporter(p).parse()
+    feeds = importer.group_by_endpoint()
+    out_dir = tmp_path / "output"
+    importer.generate(feeds, out_dir, on_conflict=lambda fc: "skip")
+
+    # 检查 listPets feed 的 META.yaml
+    list_pets_feed = next(f for f in feeds if f.feed_code == "list-pets")
+    meta_path = out_dir / "list-pets" / "META.yaml"
+    meta = yaml.safe_load(meta_path.read_text(encoding="utf-8"))
+
+    assert meta["name"] == "list-pets"
+    assert meta["feed_name"] == "List pets"
+    assert "GET" in meta["endpoint"]
+    assert "/pets" in meta["endpoint"]
+    assert meta["triggers"]["keywords"] == []
+    assert meta["triggers"]["scenarios"] == []
+    assert isinstance(meta["fields"], list)
+    # id 和 name 应在 fields 中
+    assert "id" in meta["fields"]
+    assert "name" in meta["fields"]
+
+
+# ---------------------------------------------------------------------------
+# 19. GUIDE.md 包含必要 section
+# ---------------------------------------------------------------------------
+
+
+def test_generate_guide_content(spec_file, tmp_path):
+    """GUIDE.md 包含标题、## Parameters、## Response Fields。"""
+    p = spec_file(MINIMAL_SPEC_3)
+    importer = OpenAPIImporter(p).parse()
+    feeds = importer.group_by_endpoint()
+    out_dir = tmp_path / "output"
+    importer.generate(feeds, out_dir, on_conflict=lambda fc: "skip")
+
+    guide = (out_dir / "list-pets" / "GUIDE.md").read_text(encoding="utf-8")
+    assert "# List pets" in guide
+    assert "## Parameters" in guide
+    assert "## Response Fields" in guide
+
+
+# ---------------------------------------------------------------------------
+# 20. spec 中有 example 时写入 GUIDE.md
+# ---------------------------------------------------------------------------
+
+
+def test_generate_with_example(spec_file, tmp_path):
+    """spec 中内联 example 时，GUIDE.md 包含该 example 的值。"""
+    p = spec_file(EXAMPLE_IN_SPEC)
+    importer = OpenAPIImporter(p).parse()
+    feeds = importer.group_by_endpoint()
+    out_dir = tmp_path / "output"
+    importer.generate(feeds, out_dir, on_conflict=lambda fc: "skip")
+
+    guide = (out_dir / "get-status" / "GUIDE.md").read_text(encoding="utf-8")
+    assert "ok" in guide  # example 中的 "status": "ok"
+    assert "1.0" in guide  # example 中的 "version": "1.0"
+
+
+# ---------------------------------------------------------------------------
+# 21. 冲突时 skip 保留原文件
+# ---------------------------------------------------------------------------
+
+
+def test_generate_skip_existing(spec_file, tmp_path):
+    """on_conflict 返回 'skip' 时，原文件内容不被覆盖。"""
+    p = spec_file(MINIMAL_SPEC_3)
+    importer = OpenAPIImporter(p).parse()
+    feeds = importer.group_by_endpoint()
+    out_dir = tmp_path / "output"
+
+    # 先创建一个 feed 目录，写入占位内容
+    feed = feeds[0]
+    feed_dir = out_dir / feed.feed_code
+    feed_dir.mkdir(parents=True)
+    original_content = "ORIGINAL CONTENT"
+    (feed_dir / "GUIDE.md").write_text(original_content, encoding="utf-8")
+
+    result = importer.generate(feeds, out_dir, on_conflict=lambda fc: "skip")
+
+    # 该 feed 应被 skip
+    assert feed.feed_code in result.skipped
+    # 原文件内容未改变
+    assert (feed_dir / "GUIDE.md").read_text(encoding="utf-8") == original_content
+
+
+# ---------------------------------------------------------------------------
+# 22. 冲突时 overwrite 覆盖文件
+# ---------------------------------------------------------------------------
+
+
+def test_generate_overwrite_existing(spec_file, tmp_path):
+    """on_conflict 返回 'overwrite' 时，文件被新内容覆盖。"""
+    p = spec_file(MINIMAL_SPEC_3)
+    importer = OpenAPIImporter(p).parse()
+    feeds = importer.group_by_endpoint()
+    out_dir = tmp_path / "output"
+
+    # 先创建一个 feed 目录，写入占位内容
+    feed = feeds[0]
+    feed_dir = out_dir / feed.feed_code
+    feed_dir.mkdir(parents=True)
+    original_content = "ORIGINAL CONTENT"
+    (feed_dir / "GUIDE.md").write_text(original_content, encoding="utf-8")
+
+    result = importer.generate(feeds, out_dir, on_conflict=lambda fc: "overwrite")
+
+    # 该 feed 应被 overwrite
+    assert feed.feed_code in result.overwritten
+    # 文件内容已被新生成的内容替换
+    new_content = (feed_dir / "GUIDE.md").read_text(encoding="utf-8")
+    assert new_content != original_content
+    assert "#" in new_content  # Markdown 标题
+
+
+# ---------------------------------------------------------------------------
+# 23. 资源粒度 GUIDE.md 按 method 分 section
+# ---------------------------------------------------------------------------
+
+
+def test_generate_resource_guide_multi_endpoint(spec_file, tmp_path):
+    """group_by_resource 生成的 GUIDE.md 按 HTTP method 分 ## section。"""
+    p = spec_file(MINIMAL_SPEC_3)
+    importer = OpenAPIImporter(p).parse()
+    feeds = importer.group_by_resource()
+    out_dir = tmp_path / "output"
+    importer.generate(feeds, out_dir, on_conflict=lambda fc: "skip")
+
+    # pets 资源 feed 应有多个 endpoint（GET /pets, POST /pets, GET /pets/{id}）
+    pets_feed = next(f for f in feeds if f.feed_code == "pets")
+    guide = (out_dir / "pets" / "GUIDE.md").read_text(encoding="utf-8")
+
+    # 多 endpoint 时使用 ## METHOD /path 格式
+    assert "## GET /pets" in guide or "## POST /pets" in guide

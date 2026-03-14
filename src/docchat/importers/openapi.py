@@ -299,7 +299,12 @@ class OpenAPIImporter:
         for ep in self._endpoints:
             feed_code = self._endpoint_feed_code(ep)
             fields = _extract_fields(ep.response_schema)
-            example = _generate_example(ep.response_schema)
+            # Prefer spec-provided examples over generated ones
+            if ep.response_examples:
+                examples = ep.response_examples
+            else:
+                example = _generate_example(ep.response_schema)
+                examples = {"default": example} if example is not None else {}
             skeleton = FeedSkeleton(
                 feed_code=feed_code,
                 feed_name=ep.summary or feed_code,
@@ -307,7 +312,7 @@ class OpenAPIImporter:
                 endpoints=[ep],
                 fields=fields,
                 parameters=ep.parameters,
-                examples={"default": example} if example is not None else {},
+                examples=examples,
             )
             result.append(skeleton)
         return result
@@ -544,3 +549,183 @@ class OpenAPIImporter:
         if ep.operation_id:
             return _slugify(ep.operation_id)
         return self._path_to_code(ep.method, ep.path)
+
+    # ------------------------------------------------------------------
+    # File generation
+    # ------------------------------------------------------------------
+
+    def generate(
+        self,
+        feeds: list[FeedSkeleton],
+        target_dir: Path,
+        on_conflict: Callable[[str], str],
+    ) -> GenerateResult:
+        """Generate META.yaml + GUIDE.md for each FeedSkeleton under *target_dir*.
+
+        Args:
+            feeds: List of FeedSkeleton objects (from group_by_endpoint or group_by_resource).
+            target_dir: Root directory where feed sub-directories will be created.
+            on_conflict: Callable receiving feed_code; must return "skip" or "overwrite".
+
+        Returns:
+            GenerateResult with lists of created / skipped / overwritten feed codes.
+        """
+        import yaml  # lazy import
+
+        result = GenerateResult()
+        target_dir = Path(target_dir)
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        for feed in feeds:
+            feed_dir = target_dir / feed.feed_code
+            existed = feed_dir.exists()
+
+            if existed:
+                action = on_conflict(feed.feed_code)
+                if action == "skip":
+                    result.skipped.append(feed.feed_code)
+                    continue
+                # overwrite — fall through
+            else:
+                feed_dir.mkdir(parents=True, exist_ok=True)
+
+            # --- META.yaml ---
+            meta: dict[str, Any] = {
+                "name": feed.feed_code,
+                "feed_name": feed.feed_name,
+                "description": feed.description,
+                "endpoint": self._format_endpoints(feed.endpoints),
+                "triggers": {
+                    "keywords": [],
+                    "scenarios": [],
+                },
+                "fields": feed.fields,
+            }
+            meta_path = feed_dir / "META.yaml"
+            meta_path.write_text(
+                yaml.dump(meta, allow_unicode=True, sort_keys=False),
+                encoding="utf-8",
+            )
+
+            # --- GUIDE.md ---
+            guide_path = feed_dir / "GUIDE.md"
+            guide_path.write_text(self._render_guide(feed), encoding="utf-8")
+
+            if existed:
+                result.overwritten.append(feed.feed_code)
+            else:
+                result.created.append(feed.feed_code)
+
+        return result
+
+    # ------------------------------------------------------------------
+    # Rendering helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _format_endpoints(endpoints: list[EndpointInfo]) -> str:
+        """Format endpoint list to a single string (one per line)."""
+        lines = [f"{ep.method} {ep.path}" for ep in endpoints]
+        return "\n".join(lines)
+
+    def _render_guide(self, feed: FeedSkeleton) -> str:
+        """Render GUIDE.md for *feed*."""
+        lines: list[str] = [f"# {feed.feed_name}", ""]
+        if feed.description:
+            lines += [feed.description, ""]
+
+        if len(feed.endpoints) == 1:
+            self._render_single_endpoint_guide(lines, feed)
+        else:
+            self._render_multi_endpoint_guide(lines, feed)
+
+        return "\n".join(lines)
+
+    def _render_single_endpoint_guide(
+        self, lines: list[str], feed: FeedSkeleton
+    ) -> None:
+        """Append single-endpoint sections (## level) to *lines* in place."""
+        ep = feed.endpoints[0]
+        lines += [f"## Endpoint", "", f"`{ep.method} {ep.path}`", ""]
+        self._render_params(lines, feed.parameters, heading="##")
+        self._render_response_fields(lines, feed.fields, heading="##")
+        self._render_examples(lines, feed.examples, heading="##")
+        self._render_notes(lines)
+
+    def _render_multi_endpoint_guide(
+        self, lines: list[str], feed: FeedSkeleton
+    ) -> None:
+        """Append multi-endpoint sections (## per endpoint, ### sub-sections) to *lines*."""
+        # Collect per-endpoint params and examples
+        for ep in feed.endpoints:
+            lines += [f"## {ep.method} {ep.path}", ""]
+            if ep.description or ep.summary:
+                lines += [ep.description or ep.summary, ""]
+            ep_fields = _extract_fields(ep.response_schema)
+            self._render_params(lines, ep.parameters, heading="###")
+            self._render_response_fields(lines, ep_fields, heading="###")
+            ep_examples: dict[str, Any] = {}
+            if ep.response_examples:
+                ep_examples = ep.response_examples
+            self._render_examples(lines, ep_examples, heading="###")
+
+    @staticmethod
+    def _render_params(
+        lines: list[str],
+        params: list[ParamInfo],
+        heading: str = "##",
+    ) -> None:
+        """Append a Parameters section to *lines*."""
+        lines += [f"{heading} Parameters", ""]
+        if params:
+            lines += [
+                "| Name | Type | Required | Location | Description |",
+                "|------|------|----------|----------|-------------|",
+            ]
+            for p in params:
+                req = "Yes" if p.required else "No"
+                desc = p.description.replace("|", "\\|") if p.description else ""
+                lines.append(f"| `{p.name}` | {p.type} | {req} | {p.location} | {desc} |")
+        else:
+            lines.append("_No parameters._")
+        lines.append("")
+
+    @staticmethod
+    def _render_response_fields(
+        lines: list[str],
+        fields: list[str],
+        heading: str = "##",
+    ) -> None:
+        """Append a Response Fields section to *lines*."""
+        lines += [f"{heading} Response Fields", ""]
+        if fields:
+            lines += [
+                "| Field | Description |",
+                "|-------|-------------|",
+            ]
+            for f in fields:
+                lines.append(f"| `{f}` | TODO |")
+        else:
+            lines.append("_No fields extracted._")
+        lines.append("")
+
+    @staticmethod
+    def _render_examples(
+        lines: list[str],
+        examples: dict[str, Any],
+        heading: str = "##",
+    ) -> None:
+        """Append an Example Response section to *lines*."""
+        lines += [f"{heading} Example Response", ""]
+        if examples:
+            for name, value in examples.items():
+                if name != "default":
+                    lines += [f"**{name}**", ""]
+                lines += ["```json", json.dumps(value, indent=2, ensure_ascii=False), "```", ""]
+        else:
+            lines += ["```json", "# TODO: add example", "```", ""]
+
+    @staticmethod
+    def _render_notes(lines: list[str]) -> None:
+        """Append a Notes section placeholder."""
+        lines += ["## Notes", "", "TODO", ""]
