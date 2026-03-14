@@ -52,11 +52,21 @@ pip install docchat-mcp
 
 ### 2. 创建知识包
 
+**方式 A：从 OpenAPI spec 导入**（推荐）
+
+```bash
+docchat import your-api-spec.json
+```
+
+自动解析 OpenAPI spec（JSON/YAML，v2.0/3.x），生成 feed 骨架——META.yaml 包含字段和端点信息，GUIDE.md 包含参数表、响应字段和示例。你只需补充触发关键词并完善文档。
+
+**方式 B：从零开始**
+
 ```bash
 docchat init --name my-api
 ```
 
-这会生成目录结构。然后编写文档——每个 API 端点对应一个 feed 目录：
+然后手动创建每个 feed 目录：
 
 ```bash
 my-api/
@@ -106,7 +116,8 @@ claude mcp add my-api --transport http http://your-server:8000/mcp/
 - **自定义维度** — 按任意层级组织 feed（产品、版本、地区等）
 - **MCP 原生** — 4 个 Tool、3 个 Resource、2 个 Prompt，兼容任何 MCP 客户端
 - **零 LLM 依赖** — 引擎只提供数据，AI 推理由客户端完成
-- **CLI 工具链** — `init` / `build` / `validate` / `serve` / `mcp`
+- **OpenAPI 导入** — `docchat import spec.json` 从 OpenAPI spec 自动生成 feed 骨架（v2.0/3.x）
+- **CLI 工具链** — `init` / `import` / `build` / `validate` / `serve` / `mcp`
 
 ## 知识包结构
 

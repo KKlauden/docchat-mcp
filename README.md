@@ -52,11 +52,21 @@ pip install docchat-mcp
 
 ### 2. Create your knowledge pack
 
+**Option A: Import from OpenAPI spec** (recommended)
+
+```bash
+docchat import your-api-spec.json
+```
+
+This parses your OpenAPI spec (JSON/YAML, v2.0/3.x) and generates feed skeletons automatically — META.yaml with fields + endpoint info, and GUIDE.md with parameters, response fields, and examples. You just need to add trigger keywords and refine the docs.
+
+**Option B: Start from scratch**
+
 ```bash
 docchat init --name my-api
 ```
 
-This generates the directory structure. Then write your docs — each API endpoint gets a feed directory:
+Then manually create each feed directory:
 
 ```bash
 my-api/
@@ -106,7 +116,8 @@ claude mcp add my-api --transport http http://your-server:8000/mcp/
 - **Custom dimensions** — organize feeds by any hierarchy (product, version, region, etc.)
 - **MCP native** — 4 tools, 3 resources, 2 prompts — works with any MCP client
 - **Zero LLM dependency** — the engine only provides data; AI reasoning is done by the client
-- **CLI tooling** — `init` / `build` / `validate` / `serve` / `mcp`
+- **OpenAPI import** — `docchat import spec.json` generates feed skeletons from OpenAPI specs (v2.0/3.x)
+- **CLI tooling** — `init` / `import` / `build` / `validate` / `serve` / `mcp`
 
 ## Knowledge Pack Structure
 
