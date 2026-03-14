@@ -1,4 +1,4 @@
-"""DocChat CLI — init / build / serve / mcp / validate."""
+"""DocChat CLI — init / build / serve / mcp / validate / import."""
 
 from pathlib import Path
 
@@ -6,18 +6,13 @@ import click
 import yaml
 
 
-@click.group()
-def main():
-    """DocChat - Turn API docs into an intelligent MCP server."""
-    pass
+# ---------------------------------------------------------------------------
+# Shared helper
+# ---------------------------------------------------------------------------
 
 
-@main.command()
-@click.option("--dir", "target_dir", default=".", help="Target directory")
-@click.option("--name", prompt="Knowledge pack name", help="Knowledge pack name")
-def init(target_dir: str, name: str):
-    """Initialize a knowledge pack (docchat.yaml + directory structure)."""
-    target = Path(target_dir)
+def _init_pack(target: Path, name: str) -> None:
+    """Create docchat.yaml + feeds/ + _shared/ + _overview/ under *target*."""
     target.mkdir(parents=True, exist_ok=True)
 
     # docchat.yaml
@@ -100,6 +95,32 @@ def init(target_dir: str, name: str):
         encoding="utf-8",
     )
 
+
+# ---------------------------------------------------------------------------
+# CLI group
+# ---------------------------------------------------------------------------
+
+
+@click.group()
+def main():
+    """DocChat - Turn API docs into an intelligent MCP server."""
+    pass
+
+
+# ---------------------------------------------------------------------------
+# init
+# ---------------------------------------------------------------------------
+
+
+@main.command()
+@click.option("--dir", "target_dir", default=".", help="Target directory")
+@click.option("--name", prompt="Knowledge pack name", help="Knowledge pack name")
+def init(target_dir: str, name: str):
+    """Initialize a knowledge pack (docchat.yaml + directory structure)."""
+    target = Path(target_dir)
+    _init_pack(target, name)
+
+    feeds_dir = target / "feeds"
     click.echo(f"Initialized knowledge pack '{name}' in {target.resolve()}")
     click.echo()
     click.echo("Next steps:")
@@ -108,6 +129,158 @@ def init(target_dir: str, name: str):
     click.echo("  3. Run: docchat validate")
     click.echo("  4. Run: docchat build")
     click.echo("  5. Run: docchat serve  (or: docchat mcp)")
+
+
+# ---------------------------------------------------------------------------
+# import
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="import")
+@click.argument("spec_file", type=click.Path(exists=True))
+@click.option("--dir", "target_dir", default=".", help="Target knowledge pack directory")
+@click.option(
+    "--group",
+    type=click.Choice(["endpoint", "resource"]),
+    default=None,
+    help="Feed grouping granularity",
+)
+@click.option("--yes", is_flag=True, help="Non-interactive mode, skip existing feeds")
+def import_cmd(spec_file: str, target_dir: str, group: str | None, yes: bool):
+    """Import feeds from an OpenAPI / Swagger specification."""
+    from rich.console import Console  # lazy import
+
+    console = Console()
+
+    # 1. 解析 spec
+    from docchat.importers.openapi import OpenAPIImporter  # lazy import
+
+    try:
+        importer = OpenAPIImporter(spec_file).parse()
+    except Exception as exc:
+        console.print(f"[red]Error parsing spec:[/red] {exc}")
+        raise SystemExit(1)
+
+    # 2. 显示解析结果
+    console.print(
+        f"[green]Parsed spec:[/green] {importer.endpoint_count} endpoints, "
+        f"{importer.resource_count} resources"
+    )
+
+    # 3. 确定分组方式
+    if group is not None:
+        grouping = group
+    elif yes:
+        grouping = "endpoint"
+    else:
+        import questionary  # lazy import
+
+        grouping = questionary.select(
+            "Feed grouping granularity:",
+            choices=["endpoint", "resource"],
+            default="endpoint",
+        ).ask()
+        if grouping is None:
+            raise SystemExit(0)
+
+    # 4. 确定目标目录
+    if target_dir != ".":
+        target = Path(target_dir)
+    elif yes:
+        target = Path(target_dir)
+    else:
+        import questionary  # lazy import
+
+        chosen = questionary.path(
+            "Target knowledge pack directory:",
+            default=target_dir,
+        ).ask()
+        if chosen is None:
+            raise SystemExit(0)
+        target = Path(chosen)
+
+    # 5. 检查 docchat.yaml 是否存在
+    config_path = target / "docchat.yaml"
+    if not config_path.exists():
+        if yes:
+            pack_name = target.resolve().name
+            _init_pack(target, pack_name)
+            console.print(f"[green]Initialized knowledge pack '{pack_name}' in {target.resolve()}[/green]")
+        else:
+            import questionary  # lazy import
+
+            create = questionary.confirm(
+                f"No docchat.yaml found in {target.resolve()}. Create a new knowledge pack?",
+                default=True,
+            ).ask()
+            if not create:
+                console.print("[yellow]Aborted.[/yellow]")
+                raise SystemExit(0)
+            pack_name = questionary.text(
+                "Knowledge pack name:",
+                default=target.resolve().name,
+            ).ask()
+            if pack_name is None:
+                raise SystemExit(0)
+            _init_pack(target, pack_name)
+            console.print(f"[green]Initialized knowledge pack '{pack_name}' in {target.resolve()}[/green]")
+    # else: docchat.yaml 存在，继续
+
+    # 6. feeds 目录
+    feeds_dir = target / "feeds"
+    feeds_dir.mkdir(parents=True, exist_ok=True)
+
+    # 7. 生成 FeedSkeleton 列表
+    if grouping == "endpoint":
+        feeds = importer.group_by_endpoint()
+    else:
+        feeds = importer.group_by_resource()
+
+    # 8. 冲突处理回调
+    if yes:
+        def on_conflict(feed_code: str) -> str:
+            return "skip"
+    else:
+        import questionary  # lazy import
+
+        def on_conflict(feed_code: str) -> str:
+            overwrite = questionary.confirm(
+                f"Feed '{feed_code}' already exists. Overwrite?",
+                default=False,
+            ).ask()
+            return "overwrite" if overwrite else "skip"
+
+    # 9. 生成文件
+    gen_result = importer.generate(feeds, feeds_dir, on_conflict)
+
+    # 10. 输出结果
+    for code in gen_result.created:
+        console.print(f"  [green]✓[/green] created   {code}")
+    for code in gen_result.skipped:
+        console.print(f"  [yellow]⊘[/yellow] skipped   {code}")
+    for code in gen_result.overwritten:
+        console.print(f"  [blue]↻[/blue] overwritten {code}")
+
+    total = len(gen_result.created) + len(gen_result.skipped) + len(gen_result.overwritten)
+    console.print(
+        f"\n[bold]Done:[/bold] {len(gen_result.created)} created, "
+        f"{len(gen_result.skipped)} skipped, "
+        f"{len(gen_result.overwritten)} overwritten "
+        f"(total {total} feeds)"
+    )
+
+    # Next steps
+    console.print("\n[bold]Next steps:[/bold]")
+    console.print("  1. Fill in triggers.keywords in each feed's META.yaml")
+    console.print("  2. Complete GUIDE.md with accurate documentation")
+    console.print("  3. Run: docchat validate")
+    console.print("  4. Run: docchat build")
+    console.print("  5. Run: docchat serve  (or: docchat mcp)")
+
+
+# ---------------------------------------------------------------------------
+# build
+# ---------------------------------------------------------------------------
 
 
 @main.command()
@@ -126,6 +299,11 @@ def build(pack_dir: str):
         click.echo(f"  [{feed['feed_code']}] {feed['feed_name']}")
 
 
+# ---------------------------------------------------------------------------
+# serve
+# ---------------------------------------------------------------------------
+
+
 @main.command()
 @click.option("--dir", "pack_dir", default=".", help="Knowledge pack directory")
 @click.option("--port", default=8000, help="HTTP port")
@@ -139,6 +317,11 @@ def serve(pack_dir: str, port: int):
     mcp.run(transport="streamable-http", host="0.0.0.0", port=port)
 
 
+# ---------------------------------------------------------------------------
+# mcp
+# ---------------------------------------------------------------------------
+
+
 @main.command("mcp")
 @click.option("--dir", "pack_dir", default=".", help="Knowledge pack directory")
 def mcp_stdio(pack_dir: str):
@@ -148,6 +331,11 @@ def mcp_stdio(pack_dir: str):
     target = Path(pack_dir)
     mcp = create_mcp_server(target)
     mcp.run(transport="stdio")
+
+
+# ---------------------------------------------------------------------------
+# validate
+# ---------------------------------------------------------------------------
 
 
 @main.command()
