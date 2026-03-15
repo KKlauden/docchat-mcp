@@ -7,7 +7,9 @@ English | [中文](README.zh-CN.md)
 [![PyPI version](https://img.shields.io/pypi/v/docchat-mcp)](https://pypi.org/project/docchat-mcp/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**DocChat** transforms your API documentation into a smart [MCP](https://modelcontextprotocol.io/) server. AI coding assistants like Claude Code can query your API docs through natural language — with **~80% of queries resolved via deterministic routing** (zero LLM cost).
+**DocChat** transforms your API documentation into a smart [MCP](https://modelcontextprotocol.io/) server. Claude Code can query your API docs through natural language — with **~80% of queries resolved via deterministic routing** (zero LLM cost).
+
+> **Note:** DocChat is currently optimized for **Claude Code**. Support for other AI coding tools is planned.
 
 ## Use Case
 

@@ -7,7 +7,9 @@
 
 [English](README.md) | 中文
 
-**DocChat** 将你的 API 文档转化为智能 [MCP](https://modelcontextprotocol.io/) 服务器。Claude Code 等 AI 编程助手可以用自然语言查询你的 API 文档——**约 80% 的查询通过确定性路由解决**（零 LLM 调用）。
+**DocChat** 将你的 API 文档转化为智能 [MCP](https://modelcontextprotocol.io/) 服务器。Claude Code 可以用自然语言查询你的 API 文档——**约 80% 的查询通过确定性路由解决**（零 LLM 调用）。
+
+> **说明：** DocChat 当前主要针对 **Claude Code** 优化，其他 AI 编码工具的支持后续跟进。
 
 ## 使用场景
 

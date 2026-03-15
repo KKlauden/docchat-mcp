@@ -464,3 +464,6 @@ def connect(pack_dir: str):
 
     click.echo(f"Connected '{name}' to Claude Code.")
     click.echo(f"Restart Claude Code in {target} to start using it.")
+    click.echo()
+    click.echo("For other AI tools, start the HTTP server instead:")
+    click.echo(f"  docchat serve --dir {target}")
