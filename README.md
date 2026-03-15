@@ -96,14 +96,25 @@ docchat build       # Verify index loads correctly
 ### 4. Connect to Claude Code
 
 ```bash
-# Register as a local MCP server (runs on your machine via stdio)
+# In your knowledge pack directory:
+docchat connect
+
+# Or from another directory:
+docchat connect --dir /path/to/my-api-docs/
+```
+
+That's it. Now when you ask Claude Code about your API, it queries DocChat's MCP server locally, retrieves the relevant docs, and generates accurate answers.
+
+<details>
+<summary>Manual registration (without <code>docchat connect</code>)</summary>
+
+```bash
 claude mcp add my-api -- docchat mcp --dir ./my-api-docs/
 
 # Or via uvx (no prior install needed)
 claude mcp add my-api -- uvx --from docchat-mcp docchat mcp --dir ./my-api-docs/
 ```
-
-That's it. Now when you ask Claude Code about your API, it queries DocChat's MCP server locally, retrieves the relevant docs, and generates accurate answers.
+</details>
 
 ### Team sharing (optional)
 

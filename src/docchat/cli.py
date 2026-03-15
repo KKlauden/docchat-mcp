@@ -299,12 +299,15 @@ def import_cmd(spec_file: str, target_dir: str, group: str | None, yes: bool):
     console.print("    In Claude Code: /docchat-author or ask AI to improve the docs")
     console.print("    In other tools: tell AI to read AUTHORING.md and improve the docs")
     console.print()
+    console.print("  [bold cyan]Connect to Claude Code:[/bold cyan]")
+    console.print("    docchat connect")
+    console.print()
     console.print("  [dim]Manual:[/dim]")
     console.print("    1. Fill in triggers.keywords in each feed's META.yaml")
     console.print("    2. Complete GUIDE.md with accurate documentation")
     console.print("    3. Run: docchat validate")
     console.print("    4. Run: docchat build")
-    console.print("    5. Run: docchat serve  (or: docchat mcp)")
+    console.print("    5. docchat connect  (or: docchat serve)")
 
 
 # ---------------------------------------------------------------------------
@@ -419,3 +422,45 @@ def validate(pack_dir: str):
         click.echo(f"Warnings: {warnings}")
     else:
         click.echo("All checks passed")
+
+
+# ---------------------------------------------------------------------------
+# connect
+# ---------------------------------------------------------------------------
+
+
+@main.command()
+@click.option("--dir", "pack_dir", default=".", help="Knowledge pack directory")
+def connect(pack_dir: str):
+    """Register this knowledge pack as a Claude Code MCP server."""
+    import shutil
+    import subprocess
+
+    target = Path(pack_dir).resolve()
+
+    # Check docchat.yaml exists
+    config_path = target / "docchat.yaml"
+    if not config_path.exists():
+        click.echo(f"Error: No docchat.yaml found in {target}", err=True)
+        raise SystemExit(1)
+
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    name = config.get("name", target.name)
+
+    # Check claude CLI is available
+    if not shutil.which("claude"):
+        click.echo("Error: 'claude' CLI not found. Install Claude Code first.", err=True)
+        raise SystemExit(1)
+
+    # Register MCP server
+    cmd = [
+        "claude", "mcp", "add", name, "--",
+        "uvx", "--from", "docchat-mcp", "docchat", "mcp", "--dir", str(target),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        click.echo(f"Error: {result.stderr.strip()}", err=True)
+        raise SystemExit(1)
+
+    click.echo(f"Connected '{name}' to Claude Code.")
+    click.echo(f"Restart Claude Code in {target} to start using it.")

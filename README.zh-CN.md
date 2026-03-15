@@ -96,14 +96,25 @@ docchat build       # 验证索引加载
 ### 4. 连接 Claude Code
 
 ```bash
-# 注册为本地 MCP 服务器（通过 stdio 在本机运行）
+# 在知识包目录下：
+docchat connect
+
+# 或从其他目录：
+docchat connect --dir /path/to/my-api-docs/
+```
+
+完成。现在你在 Claude Code 中询问 API 相关问题时，它会通过本地 MCP 服务器查询 DocChat，检索相关文档，生成准确回答。
+
+<details>
+<summary>手动注册（不使用 <code>docchat connect</code>）</summary>
+
+```bash
 claude mcp add my-api -- docchat mcp --dir ./my-api-docs/
 
 # 或通过 uvx（无需预先安装）
 claude mcp add my-api -- uvx --from docchat-mcp docchat mcp --dir ./my-api-docs/
 ```
-
-完成。现在你在 Claude Code 中询问 API 相关问题时，它会通过本地 MCP 服务器查询 DocChat，检索相关文档，生成准确回答。
+</details>
 
 ### 团队共享（可选）
 

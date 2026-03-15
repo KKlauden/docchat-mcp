@@ -236,13 +236,13 @@ Tell the user how to connect to their AI coding assistant:
 # Install docchat-mcp (if not already installed)
 pip install docchat-mcp
 
-# Option A: Claude Code (stdio)
-claude mcp add my-api -- docchat mcp --dir ./
+# Connect to Claude Code (run in the knowledge pack directory)
+docchat connect
 
-# Option A (via uvx, no pre-install needed):
-claude mcp add my-api -- uvx --from docchat-mcp docchat mcp --dir ./
+# Or from another directory:
+docchat connect --dir /path/to/knowledge-pack/
 
-# Option B: HTTP mode (for team sharing)
+# HTTP mode (for team sharing)
 docchat serve --port 8710
 ```
 
