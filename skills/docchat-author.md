@@ -154,6 +154,7 @@ Rules:
 - Use commas to group synonyms on one line
 - Avoid generic words alone: "data", "API", "get" — too broad
 - Test mentally: "if someone types this keyword, should they land on THIS feed?"
+- **Combine action + resource in multiple ways**: if the endpoint is "upload pet image", include `upload image, upload file, upload photo, pet image` — not just the exact summary wording. Users rarely type the exact phrase from the docs.
 
 #### 3d. Create shared knowledge
 
