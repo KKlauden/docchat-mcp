@@ -82,11 +82,9 @@ endpoint: GET /api/users
 
 triggers:
   keywords:
-    # Comma-separated synonyms per line. Include BOTH English and Chinese.
+    # Comma-separated synonyms per line. English by default.
     - user list, get users, all users, list users, fetch users
-    - 用户列表, 获取用户, 查询用户, 用户信息
     - user by id, specific user, single user
-    - 按ID查用户, 查询单个用户
   scenarios:
     - Get a list of all users
     - Look up a specific user by ID
@@ -149,7 +147,7 @@ This is the most critical part for routing quality. For each feed:
 4. **Resource name variants**: singular/plural, abbreviations
    - `pet, pets, 宠物`
    - `order, orders, purchase, 订单, 购买`
-5. **Chinese keywords**: translate every English keyword line to a Chinese equivalent line
+5. **Other languages (optional)**: if the user's audience asks questions in non-English languages, add keyword lines in those languages too (e.g. Chinese: `用户列表, 获取用户, 查询用户`)
 6. **Domain-specific terms**: add terms users would naturally use in context
 
 Rules:
@@ -280,7 +278,7 @@ Each file uses a table: `| Field | Type | Description |`
 
 - [ ] `docchat.yaml` has name, display_name, assistant preambles
 - [ ] Every feed has META.yaml with name, feed_name, description, endpoint
-- [ ] Every feed has triggers.keywords with both English AND Chinese keywords
+- [ ] Every feed has triggers.keywords in English (add other languages if needed)
 - [ ] Every feed has fields list matching actual API response
 - [ ] Every feed has GUIDE.md with endpoint, parameters, example response
 - [ ] `_overview/INDEX.md` lists all feeds with descriptions
