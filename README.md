@@ -58,25 +58,33 @@ pip install docchat-mcp
 docchat import your-api-spec.json
 ```
 
-This parses your OpenAPI spec (JSON/YAML, v2.0/3.x) and generates feed skeletons automatically — META.yaml with fields + endpoint info, and GUIDE.md with parameters, response fields, and examples. You just need to add trigger keywords and refine the docs.
+This parses your OpenAPI spec (JSON/YAML, v2.0/3.x) and generates feed skeletons + an `AUTHORING.md` guide. Then let your AI assistant fill in the details:
 
-**Option B: Start from scratch**
+```
+# In Claude Code (skill is auto-installed as /docchat-author)
+> Help me improve the docs based on the spec
+
+# In other AI tools
+> Read AUTHORING.md and help me improve the docs
+```
+
+**Option B: Let AI do everything**
+
+If you have a documentation URL or just a description of your API, skip `import` entirely — just tell your AI assistant:
+
+```
+> I need a docchat knowledge pack for the Petstore API.
+  Docs: https://petstore.swagger.io
+  Read AUTHORING.md for the format.
+```
+
+**Option C: Start from scratch (manual)**
 
 ```bash
 docchat init --name my-api
 ```
 
-Then manually create each feed directory:
-
-```bash
-my-api/
-└── feeds/
-    └── get-users/
-        ├── META.yaml   # Trigger keywords + field names (for routing)
-        └── GUIDE.md    # Usage guide (for answering)
-```
-
-See [docs/writing-guide.md](docs/writing-guide.md) for the format, or use the `docchat-author` skill to let Claude Code help you write them.
+Then create each feed directory manually. See [docs/writing-guide.md](docs/writing-guide.md) for the format.
 
 ### 3. Validate and build
 
@@ -113,6 +121,7 @@ claude mcp add my-api --transport http http://your-server:8000/mcp/
 
 - **Deterministic routing** — trigger keywords, field names, and feed codes match queries without LLM
 - **Layered knowledge injection** — feed-level, overview, shared, and topic-matched knowledge
+- **AI-assisted authoring** — built-in `docchat-author` skill guides AI to generate complete knowledge packs from any source (spec files, URLs, or descriptions)
 - **Custom dimensions** — organize feeds by any hierarchy (product, version, region, etc.)
 - **MCP native** — 4 tools, 3 resources, 2 prompts — works with any MCP client
 - **Zero LLM dependency** — the engine only provides data; AI reasoning is done by the client
@@ -124,6 +133,9 @@ claude mcp add my-api --transport http http://your-server:8000/mcp/
 ```
 my-api/
 ├── docchat.yaml          # Pack config (name, dimensions, assistant)
+├── AUTHORING.md          # AI authoring guide (tool-agnostic)
+├── .claude/skills/       # Claude Code auto-discovers this skill
+│   └── docchat-author.md
 ├── _shared/              # Shared knowledge (error codes, auth, etc.)
 │   ├── INDEX.yaml        # Topic keywords for matching
 │   └── error_codes.md

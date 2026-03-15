@@ -11,8 +11,29 @@ import yaml
 # ---------------------------------------------------------------------------
 
 
+def _get_authoring_content() -> str:
+    """Return the AUTHORING.md / skill content bundled with the package."""
+    from importlib.resources import files
+
+    data_file = files("docchat") / "data" / "docchat-author.md"
+    return data_file.read_text(encoding="utf-8")
+
+
+def _install_skill_files(target: Path) -> None:
+    """Generate AUTHORING.md + .claude/skills/docchat-author.md under *target*."""
+    content = _get_authoring_content()
+
+    # AUTHORING.md — tool-agnostic, at project root
+    (target / "AUTHORING.md").write_text(content, encoding="utf-8")
+
+    # .claude/skills/docchat-author.md — Claude Code auto-discovers as slash command
+    claude_skills_dir = target / ".claude" / "skills"
+    claude_skills_dir.mkdir(parents=True, exist_ok=True)
+    (claude_skills_dir / "docchat-author.md").write_text(content, encoding="utf-8")
+
+
 def _init_pack(target: Path, name: str) -> None:
-    """Create docchat.yaml + feeds/ + _shared/ + _overview/ under *target*."""
+    """Create docchat.yaml + feeds/ + _shared/ + _overview/ + skill files under *target*."""
     target.mkdir(parents=True, exist_ok=True)
 
     # docchat.yaml
@@ -94,6 +115,9 @@ def _init_pack(target: Path, name: str) -> None:
         "- `fields/` — Field reference files (optional)\n",
         encoding="utf-8",
     )
+
+    # Skill files for AI-assisted authoring
+    _install_skill_files(target)
 
 
 # ---------------------------------------------------------------------------
@@ -271,11 +295,16 @@ def import_cmd(spec_file: str, target_dir: str, group: str | None, yes: bool):
 
     # Next steps
     console.print("\n[bold]Next steps:[/bold]")
-    console.print("  1. Fill in triggers.keywords in each feed's META.yaml")
-    console.print("  2. Complete GUIDE.md with accurate documentation")
-    console.print("  3. Run: docchat validate")
-    console.print("  4. Run: docchat build")
-    console.print("  5. Run: docchat serve  (or: docchat mcp)")
+    console.print("  [bold cyan]AI-assisted (recommended):[/bold cyan]")
+    console.print("    In Claude Code: /docchat-author or ask AI to improve the docs")
+    console.print("    In other tools: tell AI to read AUTHORING.md and improve the docs")
+    console.print()
+    console.print("  [dim]Manual:[/dim]")
+    console.print("    1. Fill in triggers.keywords in each feed's META.yaml")
+    console.print("    2. Complete GUIDE.md with accurate documentation")
+    console.print("    3. Run: docchat validate")
+    console.print("    4. Run: docchat build")
+    console.print("    5. Run: docchat serve  (or: docchat mcp)")
 
 
 # ---------------------------------------------------------------------------

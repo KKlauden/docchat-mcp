@@ -24,6 +24,25 @@ def test_init_creates_shared_and_overview(tmp_path):
     assert (tmp_path / "_overview" / "INDEX.md").exists()
 
 
+def test_init_creates_skill_files(tmp_path):
+    """init creates AUTHORING.md and .claude/skills/docchat-author.md."""
+    runner = CliRunner()
+    result = runner.invoke(main, ["init", "--dir", str(tmp_path), "--name", "test-api"])
+    assert result.exit_code == 0
+
+    # AUTHORING.md at project root
+    authoring = tmp_path / "AUTHORING.md"
+    assert authoring.exists()
+    content = authoring.read_text(encoding="utf-8")
+    assert "DocChat Author" in content
+    assert "docchat-author" in content
+
+    # .claude/skills/docchat-author.md for Claude Code
+    claude_skill = tmp_path / ".claude" / "skills" / "docchat-author.md"
+    assert claude_skill.exists()
+    assert claude_skill.read_text(encoding="utf-8") == content
+
+
 def test_init_config_content(tmp_path):
     runner = CliRunner()
     runner.invoke(main, ["init", "--dir", str(tmp_path), "--name", "my-cool-api"])
@@ -126,7 +145,7 @@ def test_import_noninteractive(tmp_path):
 
 
 def test_import_creates_pack_if_missing(tmp_path):
-    """目标目录无 docchat.yaml 时自动创建"""
+    """目标目录无 docchat.yaml 时自动创建（含 skill 文件）"""
     spec_path = tmp_path / "spec.json"
     spec_path.write_text(json.dumps(TINY_SPEC))
 
@@ -139,6 +158,9 @@ def test_import_creates_pack_if_missing(tmp_path):
     assert result.exit_code == 0, result.output
     assert (target / "docchat.yaml").exists()
     assert (target / "feeds" / "list-items" / "META.yaml").exists()
+    # Skill files should be created when pack is initialized
+    assert (target / "AUTHORING.md").exists()
+    assert (target / ".claude" / "skills" / "docchat-author.md").exists()
 
 
 def test_import_skip_existing(tmp_path):

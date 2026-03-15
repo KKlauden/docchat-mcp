@@ -58,25 +58,33 @@ pip install docchat-mcp
 docchat import your-api-spec.json
 ```
 
-自动解析 OpenAPI spec（JSON/YAML，v2.0/3.x），生成 feed 骨架——META.yaml 包含字段和端点信息，GUIDE.md 包含参数表、响应字段和示例。你只需补充触发关键词并完善文档。
+自动解析 OpenAPI spec（JSON/YAML，v2.0/3.x），生成 feed 骨架和 `AUTHORING.md` 编写指南。然后让 AI 助手补充完善：
 
-**方式 B：从零开始**
+```
+# 在 Claude Code 中（skill 已自动安装为 /docchat-author）
+> 帮我完善文档
+
+# 在其他 AI 工具中
+> 阅读 AUTHORING.md，帮我完善知识包文档
+```
+
+**方式 B：让 AI 全程生成**
+
+如果你有文档 URL 或只是 API 的描述，可以跳过 `import`，直接告诉 AI：
+
+```
+> 我需要为 Petstore API 创建 docchat 知识包。
+  文档地址：https://petstore.swagger.io
+  请阅读 AUTHORING.md 了解格式规范。
+```
+
+**方式 C：从零开始（手动）**
 
 ```bash
 docchat init --name my-api
 ```
 
-然后手动创建每个 feed 目录：
-
-```bash
-my-api/
-└── feeds/
-    └── get-users/
-        ├── META.yaml   # 触发关键词 + 字段名（用于路由）
-        └── GUIDE.md    # 使用指南（用于回答）
-```
-
-格式参见 [docs/writing-guide.md](docs/writing-guide.md)，也可以使用 `docchat-author` skill 让 Claude Code 辅助编写。
+然后手动创建每个 feed 目录。格式参见 [docs/writing-guide.md](docs/writing-guide.md)。
 
 ### 3. 验证和构建
 
@@ -113,6 +121,7 @@ claude mcp add my-api --transport http http://your-server:8000/mcp/
 
 - **确定性路由** — 触发关键词、字段名、feed code 匹配查询，无需 LLM
 - **分层知识注入** — feed 级、概览、共享知识、话题级关键词匹配
+- **AI 辅助编写** — 内置 `docchat-author` skill，引导 AI 从任意来源（spec 文件、URL、描述）生成完整知识包
 - **自定义维度** — 按任意层级组织 feed（产品、版本、地区等）
 - **MCP 原生** — 4 个 Tool、3 个 Resource、2 个 Prompt，兼容任何 MCP 客户端
 - **零 LLM 依赖** — 引擎只提供数据，AI 推理由客户端完成
@@ -124,6 +133,9 @@ claude mcp add my-api --transport http http://your-server:8000/mcp/
 ```
 my-api/
 ├── docchat.yaml          # 包配置（名称、维度、助手设定）
+├── AUTHORING.md          # AI 编写指南（工具无关）
+├── .claude/skills/       # Claude Code 自动发现此 skill
+│   └── docchat-author.md
 ├── _shared/              # 共享知识（错误码、认证等）
 │   ├── INDEX.yaml        # 话题关键词映射
 │   └── error_codes.md
