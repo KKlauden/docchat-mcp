@@ -12,13 +12,16 @@ You are helping the user create a DocChat MCP knowledge pack. DocChat turns API 
 - User wants to create a knowledge pack for an API
 - User asks to "write docs for", "create knowledge files for", or "set up docchat for" an API
 - User asks to "add a feed" or "improve" existing feed documentation
+- User says the API has been "updated" or needs to "sync" the knowledge pack
 - User mentions docchat, knowledge pack, or API documentation for MCP
 
 ## Workflow
 
 ### Phase 1: Gather API information
 
-Determine what the user has and obtain the API information:
+Collect **all available sources** before generating. Do NOT start writing after receiving just one source.
+
+**Step 1: Accept the initial input** — whatever the user provides first:
 
 1. **OpenAPI/Swagger spec file** (local `.json` or `.yaml`): Read it directly
 2. **Spec URL** (e.g. `https://petstore.swagger.io/v2/swagger.json`): Fetch with WebFetch
@@ -26,10 +29,20 @@ Determine what the user has and obtain the API information:
 4. **User description**: Ask the user to describe endpoints — method, path, parameters, response structure
 5. **Existing knowledge pack with TODOs**: Read existing `feeds/*/META.yaml` and `feeds/*/GUIDE.md`, improve them
 
-If info is incomplete, ask the user targeted questions:
-- What is the base URL?
-- What authentication does this API use?
-- Can you describe the main endpoints?
+If the user provides nothing, ask: "Please provide an OpenAPI spec file, a documentation URL, or describe the API endpoints."
+
+**Step 2: Ask for supplementary materials** — always ask before proceeding:
+
+> I found N endpoints from [source]. Before I start generating, do you have any additional resources?
+>
+> - API documentation page URL?
+> - Internal usage guides or wikis?
+> - Common issues or gotchas to document?
+> - Specific endpoints that need extra explanation?
+>
+> If not, I'll start generating based on what I have.
+
+**Step 3: Fetch and merge** — if the user provides additional sources, read them all and merge the information. More sources = better keywords, descriptions, and FAQ content.
 
 ### Phase 2: Check for existing knowledge pack
 
@@ -38,6 +51,27 @@ Check if the current directory already has a knowledge pack:
 - If `feeds/` exists with content → check what's already there, avoid duplicates
 - If `docchat import` was already run → improve the skeleton (fill TODOs, add keywords)
 - If nothing exists → create from scratch
+
+**If the user is updating an existing pack**, determine the update scope first:
+
+1. **User specifies what changed** (e.g. "the /pet endpoint has a new `weight` field"):
+   - Update only the affected feed(s) directly — no need to re-read the entire spec
+   - Add the new field to META.yaml `fields`, update GUIDE.md description and example
+
+2. **User provides a new spec/URL** (e.g. "petstore.json has been updated"):
+   - Read the new source and compare with existing feeds
+   - Summarize the differences for the user:
+     > I found the following changes:
+     > - New endpoint: DELETE /pet/{petId}/tags
+     > - Modified: POST /pet — added `weight` parameter
+     > - Removed: GET /pet/findByColor
+     >
+     > Should I apply these changes?
+   - Only modify feeds that have actual changes, leave the rest untouched
+
+3. **User is unsure what changed** (e.g. "the API might have been updated"):
+   - Ask: "Do you have the new spec file or documentation URL? I'll compare it with the current knowledge pack."
+   - If no new source available, suggest: "You can check with the API provider for a changelog or updated spec."
 
 ### Phase 3: Generate knowledge pack
 
