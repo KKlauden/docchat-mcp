@@ -111,10 +111,10 @@ claude mcp add my-api -- uvx --from docchat-mcp docchat mcp --dir ./my-api-docs/
 
 ```bash
 # 在共享服务器上启动 HTTP 模式
-docchat serve --port 8000
+docchat serve --port 8710
 
 # 团队成员远程连接
-claude mcp add my-api --transport http http://your-server:8000/mcp/
+claude mcp add my-api --transport http http://your-server:8710/mcp/
 ```
 
 ## 特性

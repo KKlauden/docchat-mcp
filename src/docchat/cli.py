@@ -335,7 +335,7 @@ def build(pack_dir: str):
 
 @main.command()
 @click.option("--dir", "pack_dir", default=".", help="Knowledge pack directory")
-@click.option("--port", default=8000, help="HTTP port")
+@click.option("--port", default=8710, help="HTTP port")
 def serve(pack_dir: str, port: int):
     """Start MCP Server (HTTP mode)."""
     from docchat.mcp_server import create_mcp_server

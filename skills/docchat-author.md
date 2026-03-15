@@ -243,7 +243,7 @@ claude mcp add my-api -- docchat mcp --dir ./
 claude mcp add my-api -- uvx --from docchat-mcp docchat mcp --dir ./
 
 # Option B: HTTP mode (for team sharing)
-docchat serve --port 8000
+docchat serve --port 8710
 ```
 
 ## FAQ.md format (optional but recommended)

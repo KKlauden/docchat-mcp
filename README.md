@@ -111,10 +111,10 @@ If you want multiple people to use the same knowledge pack:
 
 ```bash
 # Start HTTP server on a shared machine
-docchat serve --port 8000
+docchat serve --port 8710
 
 # Team members connect remotely
-claude mcp add my-api --transport http http://your-server:8000/mcp/
+claude mcp add my-api --transport http http://your-server:8710/mcp/
 ```
 
 ## Features
