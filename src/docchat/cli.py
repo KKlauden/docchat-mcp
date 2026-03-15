@@ -1,4 +1,4 @@
-"""DocChat CLI — init / build / serve / mcp / validate / import."""
+"""DocChat CLI — init / import / build / validate / serve / mcp / connect."""
 
 from pathlib import Path
 
@@ -148,11 +148,9 @@ def init(target_dir: str, name: str):
     click.echo(f"Initialized knowledge pack '{name}' in {target.resolve()}")
     click.echo()
     click.echo("Next steps:")
-    click.echo(f"  1. Add feed directories under {feeds_dir}/")
-    click.echo("  2. Write META.yaml + GUIDE.md for each feed")
-    click.echo("  3. Run: docchat validate")
-    click.echo("  4. Run: docchat build")
-    click.echo("  5. Run: docchat serve  (or: docchat mcp)")
+    click.echo("  1. In Claude Code: /docchat-author or ask AI to help write the docs")
+    click.echo("  2. Run: docchat validate")
+    click.echo("  3. Run: docchat connect")
 
 
 # ---------------------------------------------------------------------------

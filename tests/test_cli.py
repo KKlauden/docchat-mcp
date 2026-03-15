@@ -183,3 +183,29 @@ def test_import_skip_existing(tmp_path):
     assert result.exit_code == 0, result.output
     content = (feeds_dir / "list-items" / "META.yaml").read_text()
     assert "existing: true" in content
+
+
+# ---------------------------------------------------------------------------
+# connect tests
+# ---------------------------------------------------------------------------
+
+
+def test_connect_missing_config(tmp_path):
+    """docchat.yaml 不存在时报错"""
+    runner = CliRunner()
+    result = runner.invoke(main, ["connect", "--dir", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "No docchat.yaml found" in result.output or "No docchat.yaml found" in (result.stderr or "")
+
+
+def test_connect_missing_claude_cli(tmp_path, monkeypatch):
+    """claude CLI 不存在时报错"""
+    (tmp_path / "docchat.yaml").write_text("name: test-api\n")
+
+    # 确保 shutil.which("claude") 返回 None
+    import shutil
+    monkeypatch.setattr(shutil, "which", lambda cmd: None)
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["connect", "--dir", str(tmp_path)])
+    assert result.exit_code != 0
