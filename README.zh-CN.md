@@ -100,7 +100,7 @@ docchat build       # 验证索引加载
 claude mcp add my-api -- docchat mcp --dir ./my-api-docs/
 
 # 或通过 uvx（无需预先安装）
-claude mcp add my-api -- uvx docchat-mcp mcp --dir ./my-api-docs/
+claude mcp add my-api -- uvx --from docchat-mcp docchat mcp --dir ./my-api-docs/
 ```
 
 完成。现在你在 Claude Code 中询问 API 相关问题时，它会通过本地 MCP 服务器查询 DocChat，检索相关文档，生成准确回答。

@@ -240,7 +240,7 @@ pip install docchat-mcp
 claude mcp add my-api -- docchat mcp --dir ./
 
 # Option A (via uvx, no pre-install needed):
-claude mcp add my-api -- uvx docchat-mcp mcp --dir ./
+claude mcp add my-api -- uvx --from docchat-mcp docchat mcp --dir ./
 
 # Option B: HTTP mode (for team sharing)
 docchat serve --port 8000
