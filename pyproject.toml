@@ -1,6 +1,6 @@
 [project]
 name = "docchat-mcp"
-version = "0.3.0"
+version = "0.3.1"
 description = "Turn your API docs into an intelligent MCP server with deterministic routing and layered knowledge injection."
 readme = "README.md"
 license = "MIT"
