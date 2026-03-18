@@ -135,6 +135,7 @@ claude mcp add my-api --transport http http://your-server:8710/mcp/
 - **确定性路由** — 触发关键词、字段名、feed code 匹配查询，无需 LLM
 - **分层知识注入** — feed 级、概览、共享知识、话题级关键词匹配
 - **AI 辅助编写** — 内置 `docchat-author` skill，引导 AI 从任意来源（spec 文件、URL、描述）生成完整知识包
+- **质量审查** — `docchat-reviewer` skill 审查关键词覆盖度、文档完整性和字段一致性
 - **自定义维度** — 按任意层级组织 feed（产品、版本、地区等）
 - **MCP 原生** — 4 个 Tool、3 个 Resource、2 个 Prompt，兼容任何 MCP 客户端
 - **零 LLM 依赖** — 引擎只提供数据，AI 推理由客户端完成
@@ -147,8 +148,9 @@ claude mcp add my-api --transport http http://your-server:8710/mcp/
 my-api/
 ├── docchat.yaml          # 包配置（名称、维度、助手设定）
 ├── AUTHORING.md          # AI 编写指南（工具无关）
-├── .claude/skills/       # Claude Code 自动发现此 skill
-│   └── docchat-author.md
+├── .claude/skills/       # Claude Code 自动发现这些 skill
+│   ├── docchat-author.md
+│   └── docchat-reviewer.md
 ├── _shared/              # 共享知识（错误码、认证等）
 │   ├── INDEX.yaml        # 话题关键词映射
 │   └── error_codes.md

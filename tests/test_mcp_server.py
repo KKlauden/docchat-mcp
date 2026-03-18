@@ -88,3 +88,17 @@ async def test_search_by_field(mcp_client):
         data = json.loads(result.content[0].text)
         assert len(data) > 0
         assert data[0]["feed_code"] == "get-users"
+
+
+@pytest.mark.asyncio
+async def test_api_expert_prompt_includes_tool_guidance(mcp_client):
+    async with mcp_client:
+        prompts = await mcp_client.list_prompts()
+        prompt_names = [p.name for p in prompts]
+        assert "api_expert_system" in prompt_names
+
+        result = await mcp_client.get_prompt("api_expert_system")
+        prompt_text = result.messages[0].content.text
+        assert "MCP Tool Usage Best Practices" in prompt_text
+        assert "route_question" in prompt_text
+        assert "Never fabricate" in prompt_text

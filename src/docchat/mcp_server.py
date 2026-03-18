@@ -177,18 +177,37 @@ def create_mcp_server(pack_dir: Path | str) -> FastMCP:
 
     @mcp.prompt()
     def api_expert_system() -> str:
-        """System prompt for an API documentation expert."""
+        """System prompt for an API documentation expert.
+
+        Includes tool usage best practices so the AI client knows
+        the optimal way to call DocChat MCP tools.
+        """
         from docchat.engine.prompts import build_system_prompt
 
         knowledge = engine.get_routing_summary()
         overview = engine.get_overview()
         full_knowledge = "\n\n".join(filter(None, [overview, knowledge]))
-        return build_system_prompt(
+
+        base_prompt = build_system_prompt(
             "usage",
             full_knowledge,
             lang="en",
             preamble=config.assistant.preamble_en,
         )
+
+        tool_guidance = """
+
+## MCP Tool Usage Best Practices
+
+When answering user questions about this API, follow these rules:
+
+1. **Start with `route_question`** — it performs deterministic routing and returns matched feeds + layered knowledge in a single call. For most questions, this is all you need.
+2. **Use `get_feed_info` for details** — if the user asks about specific parameters, response fields, or edge cases, call `get_feed_info` with the feed code to get the full documentation. Do not answer detail questions based only on the routing summary.
+3. **Use `search_by_field` for field lookups** — when the user asks "what is fieldName?" or "which endpoint returns fieldName?", this tool finds the right feed directly.
+4. **Use `list_feeds` only for browsing** — when the user wants to see all available endpoints or asks "what can this API do?".
+5. **Never fabricate answers** — if no tool returns relevant results, tell the user you could not find matching documentation and suggest they rephrase their question with different keywords or check the API provider's docs directly."""
+
+        return base_prompt + tool_guidance
 
     @mcp.prompt()
     def troubleshooting_guide() -> str:

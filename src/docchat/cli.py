@@ -11,25 +11,27 @@ import yaml
 # ---------------------------------------------------------------------------
 
 
-def _get_authoring_content() -> str:
-    """Return the AUTHORING.md / skill content bundled with the package."""
+def _get_bundled_skill(filename: str) -> str:
+    """Return the content of a bundled skill file from package data."""
     from importlib.resources import files
 
-    data_file = files("docchat") / "data" / "docchat-author.md"
+    data_file = files("docchat") / "data" / filename
     return data_file.read_text(encoding="utf-8")
 
 
 def _install_skill_files(target: Path) -> None:
-    """Generate AUTHORING.md + .claude/skills/docchat-author.md under *target*."""
-    content = _get_authoring_content()
+    """Generate AUTHORING.md + .claude/skills/ skill files under *target*."""
+    author_content = _get_bundled_skill("docchat-author.md")
+    reviewer_content = _get_bundled_skill("docchat-reviewer.md")
 
     # AUTHORING.md — tool-agnostic, at project root
-    (target / "AUTHORING.md").write_text(content, encoding="utf-8")
+    (target / "AUTHORING.md").write_text(author_content, encoding="utf-8")
 
-    # .claude/skills/docchat-author.md — Claude Code auto-discovers as slash command
+    # .claude/skills/ — Claude Code auto-discovers as slash commands
     claude_skills_dir = target / ".claude" / "skills"
     claude_skills_dir.mkdir(parents=True, exist_ok=True)
-    (claude_skills_dir / "docchat-author.md").write_text(content, encoding="utf-8")
+    (claude_skills_dir / "docchat-author.md").write_text(author_content, encoding="utf-8")
+    (claude_skills_dir / "docchat-reviewer.md").write_text(reviewer_content, encoding="utf-8")
 
 
 def _init_pack(target: Path, name: str) -> None:

@@ -25,7 +25,7 @@ def test_init_creates_shared_and_overview(tmp_path):
 
 
 def test_init_creates_skill_files(tmp_path):
-    """init creates AUTHORING.md and .claude/skills/docchat-author.md."""
+    """init creates AUTHORING.md and .claude/skills/ skill files."""
     runner = CliRunner()
     result = runner.invoke(main, ["init", "--dir", str(tmp_path), "--name", "test-api"])
     assert result.exit_code == 0
@@ -41,6 +41,13 @@ def test_init_creates_skill_files(tmp_path):
     claude_skill = tmp_path / ".claude" / "skills" / "docchat-author.md"
     assert claude_skill.exists()
     assert claude_skill.read_text(encoding="utf-8") == content
+
+    # .claude/skills/docchat-reviewer.md for Claude Code
+    reviewer_skill = tmp_path / ".claude" / "skills" / "docchat-reviewer.md"
+    assert reviewer_skill.exists()
+    reviewer_content = reviewer_skill.read_text(encoding="utf-8")
+    assert "docchat-reviewer" in reviewer_content
+    assert "Quality" in reviewer_content or "Review" in reviewer_content
 
 
 def test_init_config_content(tmp_path):
@@ -161,6 +168,7 @@ def test_import_creates_pack_if_missing(tmp_path):
     # Skill files should be created when pack is initialized
     assert (target / "AUTHORING.md").exists()
     assert (target / ".claude" / "skills" / "docchat-author.md").exists()
+    assert (target / ".claude" / "skills" / "docchat-reviewer.md").exists()
 
 
 def test_import_skip_existing(tmp_path):

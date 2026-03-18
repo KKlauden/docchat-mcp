@@ -135,6 +135,7 @@ claude mcp add my-api --transport http http://your-server:8710/mcp/
 - **Deterministic routing** — trigger keywords, field names, and feed codes match queries without LLM
 - **Layered knowledge injection** — feed-level, overview, shared, and topic-matched knowledge
 - **AI-assisted authoring** — built-in `docchat-author` skill guides AI to generate complete knowledge packs from any source (spec files, URLs, or descriptions)
+- **Quality review** — `docchat-reviewer` skill audits keyword coverage, documentation completeness, and field consistency
 - **Custom dimensions** — organize feeds by any hierarchy (product, version, region, etc.)
 - **MCP native** — 4 tools, 3 resources, 2 prompts — works with any MCP client
 - **Zero LLM dependency** — the engine only provides data; AI reasoning is done by the client
@@ -147,8 +148,9 @@ claude mcp add my-api --transport http http://your-server:8710/mcp/
 my-api/
 ├── docchat.yaml          # Pack config (name, dimensions, assistant)
 ├── AUTHORING.md          # AI authoring guide (tool-agnostic)
-├── .claude/skills/       # Claude Code auto-discovers this skill
-│   └── docchat-author.md
+├── .claude/skills/       # Claude Code auto-discovers these skills
+│   ├── docchat-author.md
+│   └── docchat-reviewer.md
 ├── _shared/              # Shared knowledge (error codes, auth, etc.)
 │   ├── INDEX.yaml        # Topic keywords for matching
 │   └── error_codes.md
